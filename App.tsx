@@ -1,120 +1,149 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * Generated with the TypeScript template
- * https://github.com/react-native-community/react-native-template-typescript
- *
- * @format
- */
-
-import React, {type PropsWithChildren} from 'react';
+import * as React from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
+  Button,
+  FlatList,
+  NativeEventEmitter,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
+  Platform,
 } from 'react-native';
+import Shortcuts, { ShortcutItem } from 'react-native-actions-shortcuts';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+export default function App() {
+  const [initialShortcut, setInitialShortcut] = useState<ShortcutItem | null>();
 
-const Section: React.FC<
-  PropsWithChildren<{
-    title: string;
-  }>
-> = ({children, title}) => {
-  const isDarkMode = useColorScheme() === 'dark';
+  const [lastPressedShortcut, setLastPressedShortcut] = useState<
+    ShortcutItem | undefined
+  >();
+
+  const [shortcutItems, setShortcutItems] = useState<
+    ShortcutItem[] | undefined
+  >();
+
+  const ShortcutsEmitter = new NativeEventEmitter(Shortcuts);
+
+  useEffect(() => {
+    const getInitialShortcut = async () => {
+      const shortcutItem = await Shortcuts.getInitialShortcut();
+      setInitialShortcut(shortcutItem);
+    };
+    getInitialShortcut();
+  }, [setInitialShortcut]);
+
+  useEffect(() => {
+    const listener = (item: ShortcutItem) => {
+      setLastPressedShortcut(item);
+    };
+
+    ShortcutsEmitter.addListener('onShortcutItemPressed', listener);
+
+    return () => {
+      ShortcutsEmitter.removeAllListeners('onShortcutItemPressed');
+    };
+  }, [ShortcutsEmitter]);
+
+  const setShortcuts = useCallback(async () => {
+    const shortcuts = await Shortcuts.setShortcuts([
+      {
+        type: 'song',
+        title:
+          Platform.OS === 'android' ? 'Play "Imagine by John Lennon"' : 'Play',
+        shortTitle: 'Play "Imagine"',
+        subtitle: 'Imagine by John Lennon',
+        iconName: 'ic_music',
+        data: {
+          id: '1234',
+        },
+      },
+    ]);
+
+    setShortcutItems(shortcuts);
+  }, [setShortcutItems]);
+
+  const getShortcuts = useCallback(async () => {
+    const shortcuts = await Shortcuts.getShortcuts();
+    setShortcutItems(shortcuts);
+  }, [setShortcutItems]);
+
+  const clear = useCallback(async () => {
+    Shortcuts.clearShortcuts();
+    setShortcutItems(undefined);
+    setLastPressedShortcut(undefined);
+  }, [setShortcutItems, setLastPressedShortcut]);
+
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+    <View style={styles.container}>
+      {initialShortcut && (
+        <React.Fragment>
+          <Text style={styles.caption}>Initial shortcut item: </Text>
+          <Text style={styles.info}>
+            {initialShortcut?.type} : {initialShortcut?.title},{' '}
+            {initialShortcut.data?.id}
+          </Text>
+        </React.Fragment>
+      )}
+
+      {lastPressedShortcut && (
+        <React.Fragment>
+          <Text style={styles.caption}>Last pressed shortcut item: </Text>
+          <Text style={styles.info}>
+            {lastPressedShortcut?.type}: {lastPressedShortcut?.title} ,{' '}
+            {lastPressedShortcut.data?.id}
+          </Text>
+        </React.Fragment>
+      )}
+
+      <Text style={styles.caption}>Current shortcuts: </Text>
+      {shortcutItems?.length ? (
+        <FlatList
+          style={styles.list}
+          data={shortcutItems}
+          keyExtractor={(_, index) => `${index}`}
+          renderItem={({ item }) => (
+            <Text style={styles.info}>
+              {item.type} : {item.title}
+            </Text>
+          )}
+        />
+      ) : (
+        <Text style={styles.info}>None</Text>
+      )}
+
+      <View style={styles.actions}>
+        <Button title="Set shortcuts" onPress={() => setShortcuts()} />
+        <Button title="Get shortcuts" onPress={() => getShortcuts()} />
+        <Button title="Clear" onPress={() => clear()} />
+      </View>
     </View>
   );
-};
-
-const App = () => {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
+}
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
+    marginTop: 44,
+    margin: 16,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  caption: {
+    marginVertical: 8,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  info: {
+    width: '100%',
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    padding: 8,
   },
-  highlight: {
-    fontWeight: '700',
+  list: {
+    flex: 1,
+    width: '100%',
+  },
+  actions: {
+    position: 'absolute',
+    bottom: 0,
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
   },
 });
-
-export default App;
