@@ -4,7 +4,6 @@ export const RNTestApp = () => {
   return (
     <View
       style={{
-        backgroundColor: 'grey',
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
