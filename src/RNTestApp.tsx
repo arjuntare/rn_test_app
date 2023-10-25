@@ -105,13 +105,14 @@ const OrderedList: NodeHandler = ({children}) => {
 const BulletList: NodeHandler = ({children}) => {
   const listItems = React.Children.map(children, (child, index) => {
     return (
-      <View style={{flexDirection: 'row', gap: 5}}>
+      <View style={{flexDirection: 'row', gap: 5, marginVertical: 4}}>
         <View
           style={{
-            borderRadius: 4,
-            width: 8,
-            height: 8,
-            backgroundColor: 'black',
+            margin: 8,
+            borderRadius: 3,
+            width: 6,
+            height: 6,
+            backgroundColor: 'grey',
           }}
         />
         <View style={{flex: 1}}>{child}</View>
@@ -122,7 +123,7 @@ const BulletList: NodeHandler = ({children}) => {
   return (
     <View
       style={{
-        marginLeft: 10,
+        marginLeft: 8,
       }}>
       {listItems}
     </View>
